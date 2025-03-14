@@ -122,6 +122,43 @@ module Ruby
           raise "Failed to list issues: #{e.message}"
         end
 
+        def list_team_issues(
+          team_slug:,
+          status: "unresolved",
+          limit: 10,
+          stats_period: nil,
+          start_date: nil,
+          end_date: nil,
+          first_seen: nil,
+          last_seen: nil
+        )
+          # Get all projects for the team
+          team_projects = get_team_projects(team_slug)
+          
+          if team_projects.empty?
+            return IssueList.new(issues: [], total_count: 0)
+          end
+
+          # Construct project filter query
+          project_query = team_projects
+            .map { |project| "project:#{project['slug']}" }
+            .join(" OR ")
+
+          # Use existing list_issues with project filter
+          list_issues(
+            query: project_query,
+            status: status,
+            limit: limit,
+            stats_period: stats_period,
+            start_date: start_date,
+            end_date: end_date,
+            first_seen: first_seen,
+            last_seen: last_seen
+          )
+        rescue StandardError => e
+          raise "Failed to list team issues: #{e.message}"
+        end
+
         private
 
         def configure_sentry
@@ -190,6 +227,12 @@ module Ruby
           else
             raise ArgumentError, "Invalid datetime format. Expected String, Time, or DateTime"
           end
+        end
+
+        def get_team_projects(team_slug)
+          make_request(:get, "/organizations/strongmind-4j/teams/#{team_slug}/projects/")
+        rescue StandardError => e
+          raise "Failed to get team projects: #{e.message}"
         end
       end
     end

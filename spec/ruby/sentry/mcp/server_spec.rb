@@ -310,4 +310,120 @@ RSpec.describe Ruby::Sentry::Mcp::Server do
       end
     end
   end
+
+  describe "#list_team_issues" do
+    let(:team_slug) { "horseshoes" }
+    let(:team_projects_response) do
+      [
+        { "slug" => "project-a" },
+        { "slug" => "project-b" }
+      ]
+    end
+
+    let(:issues_response) do
+      [
+        {
+          id: "1",
+          title: "Team Error",
+          status: "unresolved",
+          level: "error",
+          firstSeen: "2024-03-14T00:00:00Z",
+          lastSeen: "2024-03-14T01:00:00Z",
+          count: "10",
+          project: { slug: "project-a" },
+          permalink: "https://sentry.io/issues/1"
+        }
+      ]
+    end
+
+    before do
+      # Stub team projects request
+      stub_request(:get, "#{base_url}/organizations/strongmind-4j/teams/#{team_slug}/projects/")
+        .with(
+          headers: {
+            "Authorization" => "Bearer #{auth_token}",
+            "Content-Type" => "application/json"
+          }
+        )
+        .to_return(status: 200, body: team_projects_response.to_json)
+
+      # Stub issues request with project filter
+      stub_request(:get, "#{base_url}/organizations/strongmind-4j/issues/")
+        .with(
+          headers: {
+            "Authorization" => "Bearer #{auth_token}",
+            "Content-Type" => "application/json"
+          },
+          query: {
+            query: "project:project-a OR project:project-b",
+            status: "unresolved",
+            limit: 10
+          }
+        )
+        .to_return(status: 200, body: issues_response.to_json)
+    end
+
+    it "fetches and formats team issues correctly" do
+      result = server.list_team_issues(team_slug: team_slug)
+      
+      expect(result.issues.length).to eq(1)
+      expect(result.total_count).to eq(1)
+      
+      issue = result.issues.first
+      expect(issue.title).to eq("Team Error")
+      expect(issue.project).to eq("project-a")
+    end
+
+    context "with time-based filtering" do
+      before do
+        stub_request(:get, "#{base_url}/organizations/strongmind-4j/issues/")
+          .with(
+            headers: {
+              "Authorization" => "Bearer #{auth_token}",
+              "Content-Type" => "application/json"
+            },
+            query: {
+              query: "project:project-a OR project:project-b",
+              status: "unresolved",
+              limit: 10,
+              statsPeriod: "24h"
+            }
+          )
+          .to_return(status: 200, body: issues_response.to_json)
+      end
+
+      it "combines team and time filters" do
+        result = server.list_team_issues(
+          team_slug: team_slug,
+          stats_period: "24h"
+        )
+        expect(result.issues.length).to eq(1)
+      end
+    end
+
+    context "when team has no projects" do
+      before do
+        stub_request(:get, "#{base_url}/organizations/strongmind-4j/teams/#{team_slug}/projects/")
+          .to_return(status: 200, body: [].to_json)
+      end
+
+      it "returns empty issue list" do
+        result = server.list_team_issues(team_slug: team_slug)
+        expect(result.issues).to be_empty
+        expect(result.total_count).to eq(0)
+      end
+    end
+
+    context "when team is not found" do
+      before do
+        stub_request(:get, "#{base_url}/organizations/strongmind-4j/teams/#{team_slug}/projects/")
+          .to_return(status: 404, body: { detail: "Team not found" }.to_json)
+      end
+
+      it "raises an error with context" do
+        expect { server.list_team_issues(team_slug: team_slug) }
+          .to raise_error(/Failed to get team projects/)
+      end
+    end
+  end
 end 
