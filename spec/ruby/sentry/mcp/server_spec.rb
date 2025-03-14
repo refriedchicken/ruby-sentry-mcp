@@ -175,5 +175,139 @@ RSpec.describe Ruby::Sentry::Mcp::Server do
           .to raise_error(RuntimeError, /Failed to list issues: API request failed \(500\): Internal Server Error/)
       end
     end
+
+    context "with time-based filtering" do
+      context "using stats_period" do
+        before do
+          stub_request(:get, "#{base_url}/organizations/strongmind-4j/issues/")
+            .with(
+              headers: { 
+                "Authorization" => "Bearer #{auth_token}",
+                "Content-Type" => "application/json"
+              },
+              query: {
+                status: "unresolved",
+                limit: 10,
+                statsPeriod: "1h"
+              }
+            )
+            .to_return(status: 200, body: issues_response.to_json)
+        end
+
+        it "includes stats_period in the request" do
+          result = server.list_issues(stats_period: "1h")
+          expect(result.issues.length).to eq(2)
+        end
+      end
+
+      context "using date range" do
+        let(:start_date) { "2024-03-14T00:00:00Z" }
+        let(:end_date) { "2024-03-14T23:59:59Z" }
+
+        before do
+          stub_request(:get, "#{base_url}/organizations/strongmind-4j/issues/")
+            .with(
+              headers: {
+                "Authorization" => "Bearer #{auth_token}",
+                "Content-Type" => "application/json"
+              },
+              query: {
+                status: "unresolved",
+                limit: 10,
+                start: start_date,
+                end: end_date
+              }
+            )
+            .to_return(status: 200, body: issues_response.to_json)
+        end
+
+        it "includes start and end dates in the request" do
+          result = server.list_issues(
+            start_date: start_date,
+            end_date: end_date
+          )
+          expect(result.issues.length).to eq(2)
+        end
+
+        it "accepts Time objects for dates" do
+          start_time = Time.parse(start_date)
+          end_time = Time.parse(end_date)
+          
+          result = server.list_issues(
+            start_date: start_time,
+            end_date: end_time
+          )
+          expect(result.issues.length).to eq(2)
+        end
+      end
+
+      context "using first_seen and last_seen" do
+        let(:first_seen) { "2024-03-14T00:00:00Z" }
+        let(:last_seen) { "2024-03-14T23:59:59Z" }
+
+        before do
+          stub_request(:get, "#{base_url}/organizations/strongmind-4j/issues/")
+            .with(
+              headers: {
+                "Authorization" => "Bearer #{auth_token}",
+                "Content-Type" => "application/json"
+              },
+              query: {
+                status: "unresolved",
+                limit: 10,
+                firstSeen: first_seen,
+                lastSeen: last_seen
+              }
+            )
+            .to_return(status: 200, body: issues_response.to_json)
+        end
+
+        it "includes first_seen and last_seen in the request" do
+          result = server.list_issues(
+            first_seen: first_seen,
+            last_seen: last_seen
+          )
+          expect(result.issues.length).to eq(2)
+        end
+      end
+
+      context "with invalid datetime format" do
+        it "raises an error for invalid datetime format" do
+          expect {
+            server.list_issues(start_date: 123)
+          }.to raise_error(ArgumentError, /Invalid datetime format/)
+        end
+      end
+
+      context "with combined filters" do
+        before do
+          stub_request(:get, "#{base_url}/organizations/strongmind-4j/issues/")
+            .with(
+              headers: {
+                "Authorization" => "Bearer #{auth_token}",
+                "Content-Type" => "application/json"
+              },
+              query: {
+                query: "error",
+                status: "unresolved",
+                limit: 5,
+                statsPeriod: "1h",
+                firstSeen: "2024-03-14T00:00:00Z"
+              }
+            )
+            .to_return(status: 200, body: issues_response.to_json)
+        end
+
+        it "combines multiple filter parameters" do
+          result = server.list_issues(
+            query: "error",
+            limit: 5,
+            stats_period: "1h",
+            first_seen: "2024-03-14T00:00:00Z"
+          )
+          expect(result.issues.length).to eq(2)
+        end
+      end
+    end
   end
 end 

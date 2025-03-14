@@ -74,11 +74,25 @@ module Ruby
           raise "Failed to process issue: #{e.message}"
         end
 
-        def list_issues(query: nil, status: "unresolved", limit: 10)
+        def list_issues(
+          query: nil,
+          status: "unresolved",
+          limit: 10,
+          stats_period: nil,  # e.g., "1h", "24h", "7d", "30d"
+          start_date: nil,    # DateTime or ISO8601 string
+          end_date: nil,      # DateTime or ISO8601 string
+          first_seen: nil,    # DateTime or ISO8601 string
+          last_seen: nil      # DateTime or ISO8601 string
+        )
           params = {
             query: query,
             status: status,
-            limit: limit
+            limit: limit,
+            statsPeriod: stats_period,
+            start: format_datetime(start_date),
+            end: format_datetime(end_date),
+            firstSeen: format_datetime(first_seen),
+            lastSeen: format_datetime(last_seen)
           }.compact
 
           response = make_request(:get, "/organizations/strongmind-4j/issues/", params: params)
@@ -102,6 +116,8 @@ module Ruby
             issues: issues,
             total_count: issues.length
           )
+        rescue ArgumentError => e
+          raise # Re-raise ArgumentError directly
         rescue StandardError => e
           raise "Failed to list issues: #{e.message}"
         end
@@ -160,6 +176,20 @@ module Ruby
             frame["function"],
             frame["lineNo"]
           ].compact.join(":")
+        end
+
+        def format_datetime(value)
+          return nil if value.nil?
+          
+          case value
+          when String
+            # Assume it's already in ISO8601 format
+            value
+          when Time, DateTime
+            value.iso8601
+          else
+            raise ArgumentError, "Invalid datetime format. Expected String, Time, or DateTime"
+          end
         end
       end
     end
