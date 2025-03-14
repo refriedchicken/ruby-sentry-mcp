@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "ruby/sentry/mcp/cli"
+
+Dry::CLI.new(Ruby::Sentry::Mcp::CLI::Commands).call 

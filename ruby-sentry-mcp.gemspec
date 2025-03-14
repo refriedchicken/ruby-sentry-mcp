@@ -8,17 +8,15 @@ Gem::Specification.new do |spec|
   spec.authors = ["Mike Benner"]
   spec.email = ["mike.benner@strongmind.com"]
 
-  spec.summary = "TODO: Write a short summary, because RubyGems requires one."
-  spec.description = "TODO: Write a longer description or delete this line."
-  spec.homepage = "TODO: Put your gem's website or public repo URL here."
+  spec.summary = "A Model Context Protocol server for retrieving and analyzing issues from Sentry.io"
+  spec.description = "A Ruby implementation of an MCP server that provides tools to inspect error reports, stacktraces, and other debugging information from your Sentry account."
+  spec.homepage = "https://github.com/mikebenner/ruby-sentry-mcp"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1.0"
 
-  spec.metadata["allowed_push_host"] = "TODO: Set to your gem server 'https://example.com'"
-
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = "TODO: Put your gem's public repo URL here."
-  spec.metadata["changelog_uri"] = "TODO: Put your gem's CHANGELOG.md URL here."
+  spec.metadata["source_code_uri"] = spec.homepage
+  spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
@@ -30,11 +28,24 @@ Gem::Specification.new do |spec|
     end
   end
   spec.bindir = "exe"
-  spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
+  spec.executables = ["ruby-sentry-mcp"]
   spec.require_paths = ["lib"]
 
-  # Uncomment to register a new dependency of your gem
-  # spec.add_dependency "example-gem", "~> 1.0"
+  # Dependencies
+  spec.add_dependency "sentry-ruby", "~> 5.15"
+  spec.add_dependency "thor", "~> 1.3"
+  spec.add_dependency "zeitwerk", "~> 2.6"
+  spec.add_dependency "dry-cli", "~> 1.0"
+  spec.add_dependency "dry-types", "~> 1.7"
+  spec.add_dependency "dry-struct", "~> 1.6"
+  spec.add_dependency "dry-validation", "~> 1.10"
+  spec.add_dependency "http", "~> 5.1"
+
+  spec.add_development_dependency "rspec", "~> 3.12"
+  spec.add_development_dependency "rubocop", "~> 1.60"
+  spec.add_development_dependency "rubocop-rspec", "~> 2.25"
+  spec.add_development_dependency "yard", "~> 0.9"
+  spec.add_development_dependency "pry", "~> 0.14"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html
