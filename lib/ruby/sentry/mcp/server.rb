@@ -71,8 +71,7 @@ module Ruby
             permalink: response["permalink"]
           )
         rescue => e
-          # Add more context to the error
-          raise "Failed to process issue: #{e.message}\nResponse: #{response.inspect}"
+          raise "Failed to process issue: #{e.message}"
         end
 
         def list_issues(query: nil, status: "unresolved", limit: 10)
@@ -99,14 +98,11 @@ module Ruby
             )
           end
 
-          # Calculate total count from the response data
-          total_count = response.length
-
           IssueList.new(
             issues: issues,
-            total_count: total_count
+            total_count: issues.length
           )
-        rescue => e
+        rescue StandardError => e
           raise "Failed to list issues: #{e.message}"
         end
 
@@ -127,19 +123,22 @@ module Ruby
         end
 
         def make_request(method, path, params: {})
-          url = "#{SENTRY_API_BASE}#{path}"
+          # Ensure path starts with a forward slash
+          path = "/#{path}" unless path.start_with?("/")
+          url = URI.join(SENTRY_API_BASE + "/", path.sub(/^\//, ''))
           
           response = HTTP
             .headers(
               "Authorization" => "Bearer #{@auth_token}",
-              "Accept" => "application/json"
+              "Content-Type" => "application/json"
             )
             .send(method, url, params: params)
-          
+
           unless response.status.success?
-            raise "API request failed: #{response.body}"
+            error_body = JSON.parse(response.body.to_s) rescue { "detail" => response.body.to_s }
+            raise "API request failed (#{response.code}): #{error_body['detail']}"
           end
-          
+
           JSON.parse(response.body.to_s)
         end
 

@@ -46,6 +46,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rubocop-rspec", "~> 2.25"
   spec.add_development_dependency "yard", "~> 0.9"
   spec.add_development_dependency "pry", "~> 0.14"
+  spec.add_development_dependency "webmock", "~> 3.19"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html

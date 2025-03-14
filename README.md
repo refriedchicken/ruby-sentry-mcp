@@ -1,6 +1,6 @@
 # Ruby Sentry MCP
 
-A Model Context Protocol server for retrieving and analyzing issues from Sentry.io. This server provides tools to inspect error reports, stacktraces, and other debugging information from your Sentry account.
+A Ruby implementation of the Model Context Protocol (MCP) server for Sentry integration.
 
 ## Installation
 
@@ -16,86 +16,103 @@ And then execute:
 $ bundle install
 ```
 
-Or install it yourself as:
-
-```bash
-$ gem install ruby-sentry-mcp
-```
-
 ## Usage
 
-### Starting the Server
-
-To start the MCP server:
+Start the MCP server:
 
 ```bash
-$ ruby-sentry-mcp start --auth-token YOUR_SENTRY_TOKEN
+$ bundle exec ruby-sentry-mcp start --auth-token YOUR_SENTRY_TOKEN
 ```
 
-Optional parameters:
-- `--port PORT` - Port to run the server on (default: 3000)
+## Development Guidelines
 
-### Configuration
+### Running Tests
 
-#### With Claude Desktop
+To run the test suite:
 
-Add this to your `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "sentry": {
-      "command": "ruby-sentry-mcp",
-      "args": ["start", "--auth-token", "YOUR_SENTRY_TOKEN"]
-    }
-  }
-}
+```bash
+$ bundle install
+$ bundle exec rake spec
 ```
 
-#### With Zed
+To run specific tests:
 
-Add to your Zed settings.json:
-
-```json
-{
-  "context_servers": {
-    "mcp-server-sentry": {
-      "command": "ruby-sentry-mcp",
-      "args": ["start", "--auth-token", "YOUR_SENTRY_TOKEN"]
-    }
-  }
-}
+```bash
+$ bundle exec rspec spec/ruby/sentry/mcp/server_spec.rb                 # Run all server specs
+$ bundle exec rspec spec/ruby/sentry/mcp/server_spec.rb:42             # Run specific test at line 42
+$ bundle exec rspec --tag focus                                        # Run only focused specs
 ```
 
-### Available Tools
+### Adding or Updating Tools
 
-1. `get_sentry_issue`
-   - Retrieve and analyze a Sentry issue by ID or URL
-   - Input:
-     - `issue_id_or_url` (string): Sentry issue ID or URL to analyze
-   - Returns: Issue details including:
-     - Title
-     - Issue ID
-     - Status
-     - Level
-     - First seen timestamp
-     - Last seen timestamp
-     - Event count
-     - Full stacktrace
+1. Update `TOOLS.md`:
+   - Move tool from "Planned" to "Implemented" section
+   - Add implementation date
+   - Update status to ✅ Completed
+   - List all implemented features
 
-## Development
+2. Testing Requirements:
+   - All tools must have corresponding tests in `spec/ruby/sentry/mcp/`
+   - Tests should cover:
+     - Success cases with mock responses
+     - Error handling
+     - Parameter validation
+     - Response formatting
+   - Use RSpec and WebMock for HTTP request mocking
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+3. Documentation:
+   - Update method documentation with YARD format
+   - Include example usage in comments
+   - Document all parameters and return values
 
-To install this gem onto your local machine, run `bundle exec rake install`.
+### Commit Message Format
+
+All commit messages must be written in the style of a sea shanty and follow this format:
+
+```
+($TYPE) $SHANTY_TITLE
+
+[Sea shanty verses about the changes]
+
+* Bullet points of specific changes
+* More specific changes
+* etc.
+
+```
+
+Where:
+- `$TYPE` is one of:
+  - B: Behavioral (system behavior changes)
+  - S: Structural (refactoring)
+  - T: Testing (spec changes)
+- `$SHANTY_TITLE` is a sea shanty themed title for the changes
+
+Example:
+```
+(B) Yo Ho Ho, A New Tool Sets Sail!
+
+Hear ye, hear ye, developers true,
+A new Sentry tool is coming through!
+With tests so strong and docs so clear,
+This code will bring us all good cheer!
+
+* Added new tool functionality
+* Implemented comprehensive tests
+* Updated documentation
+* Added error handling
+```
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/mikebenner/ruby-sentry-mcp. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](CODE_OF_CONDUCT.md).
+1. Create a new branch or fork the repository
+2. Make your changes following the guidelines above
+3. Add tests for any new functionality
+4. Update TOOLS.md if adding/modifying tools
+5. Create a pull request with a sea shanty commit message
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](LICENSE.txt).
+The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
 
 ## Code of Conduct
 
