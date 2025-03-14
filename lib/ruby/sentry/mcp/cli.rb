@@ -49,6 +49,14 @@ module Ruby
                                   when "get_sentry_issue"
                                     issue = sentry_server.get_sentry_issue(request["params"]["issue_id_or_url"])
                                     { result: issue.to_h }
+                                  when "list_issues"
+                                    params = request["params"] || {}
+                                    result = sentry_server.list_issues(
+                                      query: params["query"],
+                                      status: params["status"],
+                                      limit: params["limit"]
+                                    )
+                                    { result: result.to_h }
                                   else
                                     { error: "Unknown method" }
                                   end

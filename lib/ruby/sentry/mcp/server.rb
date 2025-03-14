@@ -35,9 +35,20 @@ module Ruby
         attribute :last_seen, Types::CoercibleDateTime
         attribute :count, Types::CoercibleInteger
         attribute :stacktrace, Types::String.optional
+        attribute :project, Types::String.optional
+        attribute :permalink, Types::String.optional
+      end
+
+      class IssueList < Dry::Struct
+        transform_keys(&:to_sym)
+
+        attribute :issues, Types::Array.of(Issue)
+        attribute :total_count, Types::CoercibleInteger
       end
 
       class Server
+        SENTRY_API_BASE = "https://sentry.io/api/0"
+
         def initialize(auth_token:)
           @auth_token = auth_token
           configure_sentry
@@ -55,11 +66,48 @@ module Ruby
             first_seen: response["firstSeen"],
             last_seen: response["lastSeen"],
             count: response["count"],
-            stacktrace: extract_stacktrace(response)
+            stacktrace: extract_stacktrace(response),
+            project: response.dig("project", "slug"),
+            permalink: response["permalink"]
           )
         rescue => e
           # Add more context to the error
           raise "Failed to process issue: #{e.message}\nResponse: #{response.inspect}"
+        end
+
+        def list_issues(query: nil, status: "unresolved", limit: 10)
+          params = {
+            query: query,
+            status: status,
+            limit: limit
+          }.compact
+
+          response = make_request(:get, "/organizations/strongmind-4j/issues/", params: params)
+          
+          issues = response.map do |issue|
+            Issue.new(
+              id: issue["id"],
+              title: issue["title"],
+              status: issue["status"],
+              level: issue["level"],
+              first_seen: issue["firstSeen"],
+              last_seen: issue["lastSeen"],
+              count: issue["count"],
+              stacktrace: nil, # Stacktrace not included in list view
+              project: issue.dig("project", "slug"),
+              permalink: issue["permalink"]
+            )
+          end
+
+          # Calculate total count from the response data
+          total_count = response.length
+
+          IssueList.new(
+            issues: issues,
+            total_count: total_count
+          )
+        rescue => e
+          raise "Failed to list issues: #{e.message}"
         end
 
         private
@@ -78,18 +126,25 @@ module Ruby
           path_components.select { |c| !c.empty? }.last
         end
 
-        def fetch_issue(issue_id)
-          # Make the actual Sentry API call
-          response = HTTP.headers(
-            "Authorization" => "Bearer #{@auth_token}",
-            "Accept" => "application/json"
-          ).get("https://sentry.io/api/0/issues/#{issue_id}/")
+        def make_request(method, path, params: {})
+          url = "#{SENTRY_API_BASE}#{path}"
+          
+          response = HTTP
+            .headers(
+              "Authorization" => "Bearer #{@auth_token}",
+              "Accept" => "application/json"
+            )
+            .send(method, url, params: params)
           
           unless response.status.success?
-            raise "Failed to fetch issue: #{response.body}"
+            raise "API request failed: #{response.body}"
           end
           
           JSON.parse(response.body.to_s)
+        end
+
+        def fetch_issue(issue_id)
+          make_request(:get, "/issues/#{issue_id}/")
         end
 
         def extract_stacktrace(response)
